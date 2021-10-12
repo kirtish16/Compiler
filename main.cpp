@@ -10,7 +10,33 @@ struct table{
 }typedef table;
 
 void readFile(string filepath,vector<vector<string>> &inputData);
+
 void storetable(table Table,string file_name);
+
+int update_literal(table &lit_table,int ptr,int start);
+
+void printliteral(table lit_table,int start,int end)
+{
+    for(int i = start; i < end ; i++)
+    {
+        cout <<"\n" << lit_table.address[i] <<")\t" <<lit_table.data[i];
+    }
+}
+
+int update_literal(table &lit_table,int ptr,int start)
+{
+    for (int i = start; i < lit_table.data.size(); i++)
+    {
+        lit_table.address[i] = ptr++;
+    }
+
+    printliteral(lit_table,start,lit_table.data.size());
+
+    if(lit_table.data.size()-1 - start > 0)
+        return ptr;
+    else 
+        return ptr;
+}
 
 int main()
 {
@@ -19,23 +45,30 @@ int main()
     vector<vector<string>> inputData;
     readFile(filepath,inputData);
 
-    int start_ptr = stoi(inputData[0][1]) ;     
+    //loc_ptr
+    int start_ptr = inputData[0].size() == 1 ? 0 : stoi(inputData[0][1]) ;     
     cout<<start_ptr;
+    //START -> 00
+    map<string,pair<string,string>> instr = { { "STOP" ,{"IS","00"} } , { "ADD" ,{"IS","1"} } , { "SUB" ,{"IS","2"} } , { "MULT" ,{"IS","3"} } , { "MOVER" ,{"IS","4"} } , { "MOVEM" ,{"IS","5"} } , { "COMP" ,{"IS","6"} } , { "BC" ,{"IS","7"} } , { "DIV" ,{"IS","8"} } , { "READ" ,{"IS","9"} } , { "PRINT" ,{"IS","10"} } ,  { "DC" ,{"DL","1"} }, { "DS" ,{"DL","2"} } ,{ "START" ,{"AD","1"} },{ "END" ,{"AD","2"} } , { "ORIGIN" ,{"AD","3"} } , { "EQU" ,{"AD","4"} } ,{ "LTORG" ,{"AD","5"} } }; 
+    // Remaining LTORG , ORIGIN , EQU , DS , STOP 
 
-    // vector<pair<string,pair<string,string>>> instr = { { "MOVER" ,{"IS","4"} },{ "ADD" ,{"IS","3"} },{ "DC" ,{"DL","1"} },{ "START" ,{"AD","1"} },{ "END" ,{"AD","2"} } };//,"ADD","MOVER"};
-    map<string,pair<string,string>> instr = { { "MOVER" ,{"IS","4"} },{ "ADD" ,{"IS","3"} },{ "DC" ,{"DL","1"} },{ "START" ,{"AD","1"} },{ "END" ,{"AD","2"} } };//,"ADD","MOVER"};
+    //OPTAB
+
     map<string,char> reg = {{"AREG",'1'},{"BREG",'2'},{"CREG",'3'},{"DREG",'4'}};
-    // cout<<" "<<reg["AREG"];
-    // vector<pair<string,int>> literal;
-    // vector<pair<string,int>> symbol;
+    map<string,char> branch = {{"LT",'1'},{"LE",'2'},{"EQ",'3'} , {"GT",'4'} , {"GE",'5'} , {"ANY",'6'}};
+
     table literal,symbol;
     literal.ptr = 0 ; symbol.ptr = 0 ;
 
-    // int lit_ptr = 0 , sym_ptr = 0  ; 
+    int pool_ptr = 1 ; 
+    vector<int> pool_tab;
+
+    pool_tab.push_back(pool_ptr);
 
     freopen ("output.txt","w",stdout);
     for(int i = 0 ; i < inputData.size(); i++)
     {
+        
         for(int j = 0 ; j < inputData[i].size(); j++)
         {
             string s = inputData[i][j];
@@ -44,11 +77,61 @@ int main()
             {
                 if(instr[s].first != "AD")
                 {
-                    cout<<start_ptr<<") "<<"( "<<instr[s].first<<" , " <<instr[s].second<<" ) ";
+                    cout<<start_ptr<<")\t"<<"( "<<instr[s].first<<" , " <<instr[s].second<<" ) ";
                     start_ptr++;
                 }
                 else
-                    cout<<"( "<<instr[s].first<<" , " <<instr[s].second<<" ) ";
+                {
+
+                    cout<<"\t\t( "<<instr[s].first<<" , " <<instr[s].second<<" ) ";
+
+                    if(s != "START")
+                        start_ptr++;
+
+                }
+                
+                //Processing For SPECIAL Instruction 
+                if(s == "BC")
+                {
+                    string condition = inputData[i][++j];
+                    cout<<"( CC , "<<branch[condition]<<" ) ";
+                }
+                if(s == "ORIGIN")
+                {
+                    string addr = inputData[i][++j];
+                    if((addr.find_first_not_of( "0123456789" ) == addr.npos))
+                    {
+                        start_ptr = stoi(s);
+                    }
+                    else
+                    {
+                        int split = addr.find('+');
+                        string start = addr.substr(0,split) ,value = addr.substr(split+1);
+                        auto it = find(symbol.data.begin(),symbol.data.end(),start);
+                        int new_address = symbol.address[it - symbol.data.begin()] + stoi(value);
+                        start_ptr = new_address;
+                    }
+                }
+                if(s == "LTORG")
+                {
+                    // start_ptr++;
+                    start_ptr = update_literal(literal,start_ptr-1,pool_ptr-1);
+                    pool_ptr = literal.address.size();
+                    pool_tab.push_back(pool_ptr);
+
+                }
+                if(s == "EQU")
+                {
+                        string label = inputData[i][j-1], value = inputData[i][++j];
+                        auto it = find(symbol.data.begin(),symbol.data.end(),value);
+                        symbol.address[it - symbol.data.begin()] = symbol.address[find(symbol.data.begin(),symbol.data.end(),label)- symbol.data.begin()];
+                }
+                if(s == "DS")
+                {
+                    int size = stoi(inputData[i][j+1]);
+                    start_ptr += size-1;
+                }
+
             }
             else if(reg.find(s) != reg.end())
             {
@@ -63,6 +146,12 @@ int main()
             //Check if literal 
             else if(s.find('=') != s.npos)
             {
+                if(find(literal.data.begin(),literal.data.end(),s) != literal.data.end())
+                {
+                    int ind = find(literal.data.begin(),literal.data.end(),s) - literal.data.begin();
+                    cout << " ( L , "<< literal.address[ind] <<" ) ";   
+                    continue;
+                }
                 literal.data.push_back(s);
                 literal.address.push_back(++(literal.ptr));
                 cout << " ( L , "<< literal.ptr <<" ) ";   
@@ -73,35 +162,53 @@ int main()
                 if(j == 0)
                 {
                     auto it = find(symbol.data.begin(),symbol.data.end(),s);
-                    symbol.address[it - symbol.data.begin()] = start_ptr;
+                    if(it == symbol.data.end())
+                    {
+                        symbol.data.push_back(s);
+                        symbol.address.push_back(start_ptr);
+                        symbol.ptr++;
+                    }
+                    else
+                        symbol.address[it - symbol.data.begin()] = start_ptr;
                 }
                 else
                 {
-                    symbol.data.push_back(s);
-                    symbol.address.push_back(++(symbol.ptr));
-                    cout << " ( S , "<< symbol.ptr <<" ) ";   
+                    //After ltorg 
+                    // if(find_l())
+                    // {
+
+                    // }
+                    auto it = find(symbol.data.begin(),symbol.data.end(),s);
+                    if(it == symbol.data.end())
+                    {
+                        symbol.data.push_back(s);
+                        symbol.address.push_back(++(symbol.ptr));
+                        cout << " ( S , "<< symbol.ptr <<" ) ";  
+                    }
+                    else
+                    {
+                        cout << " ( S , "<< it - symbol.data.begin() + 1 <<" ) ";   
+                    }
+
                 }
-                // symbol.push_back({s,++sym_ptr});
-                // cout << " ( S , "<< 1 <<" ) ";   
+                //Check branch for when you have the same symbol in same region and that after ltorg if you find that symbol again then you have to add that to data 
+
             }
             
-            // cout<<s<<" | ";
+
         }
+
         cout<<"\n";
-        // cout<<"\n --------------------------------------------- \n";
     }
 
-    for (int i = 0; i < literal.data.size(); i++)
-    {
-        literal.address[i] = start_ptr++;
-    }
-    
+    start_ptr = update_literal(literal,start_ptr,pool_ptr);
 
     storetable(literal,"literal.txt");
     storetable(symbol,"symbol.txt");
-
     fclose(stdout);
+
     return 0;
+
 }
 
 void readFile(string filepath,vector<vector<string>> &inputData)
@@ -109,15 +216,6 @@ void readFile(string filepath,vector<vector<string>> &inputData)
     ifstream in(filepath);
     int num = 0;
     string line;
-
-    // ifstream file { "input.txt" };
-    // vector<string> my_array;
-    // string num { 0 };
-    // while (file >> num)
-    //     my_array.emplace_back(vector<num);
-
-    // for(string s : my_array)
-    //     cout<<s<<" ";
 
     while(getline(in,line))
     {
@@ -130,7 +228,6 @@ void readFile(string filepath,vector<vector<string>> &inputData)
             instr.push_back(temp);
         }
         inputData.push_back(instr);
-        // in>>inputData[num++];
     }
 
 }
@@ -140,17 +237,6 @@ void storetable(table Table,string file_name)
     freopen (&file_name[0],"w",stdout);
     for(int i = 0 ; i < Table.data.size(); i++)
     {
-        cout << i+1 << " " << Table.data[i] <<" " << Table.address[i]<< "\n";
+        cout << i+1 << "\t" << Table.data[i] <<"\t" << Table.address[i]<< "\n";
     }
-    fclose(stdout);
 }
-
-/*
-
-START 200
-MOVER AREG,A 
-LOOP MOVER  CREG, B
-    ADD CREG,='10'
-END 
-
-*/
