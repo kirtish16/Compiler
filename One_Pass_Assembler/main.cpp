@@ -18,7 +18,9 @@ void printliteral(table lit_table,int start,int end)
 {
     for(int i = start; i < end ; i++)
     {
-        cout <<"\n" << lit_table.address[i] <<" )\t" <<lit_table.data[i];
+        cout  << lit_table.address[i] <<" )\t\t\t" <<lit_table.data[i] ;
+        if(i != end-1)
+            cout <<"\n";
     }
 }
 
@@ -56,8 +58,8 @@ int main()
     map<string,char> reg = {{"AREG",'1'},{"BREG",'2'},{"CREG",'3'},{"DREG",'4'}};
     map<string,char> branch = {{"LT",'1'},{"LE",'2'},{"EQ",'3'} , {"GT",'4'} , {"GE",'5'} , {"ANY",'6'}};
 
-    table literal,symbol;
-    literal.ptr = 0 ; symbol.ptr = 0 ;
+    table literal,symbol,tii;
+    literal.ptr = 0 ; symbol.ptr = 0 ; tii.ptr = 0 ;
 
     int pool_ptr = 1 ;
     vector<int> pool_tab;
@@ -65,32 +67,11 @@ int main()
 
     bool error_found = false ;
     freopen ("output.txt","w",stdout);
+
+    // vector<vector<
+
     for(int i = 0 ; i < inputData.size(); i++)
     {
-        //Error handling for token size 1
-        if(inputData[i].size() == 1)
-        {
-            string temp_s = inputData[i][0] ;
-            if(temp_s != "START" && temp_s != "STOP" && temp_s != "LTORG" && temp_s != "END")
-            {
-                cout << "Error at line " << i+1 << "\n" ;
-                error_found = true;
-                break ;
-            }
-        }
-        //Error handling for token size 2
-       /*/ else if(inputData[i].size() == 2)
-        {
-            string temp_s = inputData[i][0] ;
-            if(temp_s != "START" && temp_s != "ORIGIN" && temp_s != "PRINT" && temp_s != "READ")
-            {
-                cout << "Error at line " << i+1 << "\n" ;
-                error_found = true ;
-                break ;
-            }
-        }/*/
-
-
         for(int j = 0 ; j < inputData[i].size(); j++)
         {
             string s = inputData[i][j];
@@ -99,13 +80,11 @@ int main()
             {
                 if(instr[s].first != "AD")
                 {
-                    cout<<start_ptr<<" )\t"<<"( "<<instr[s].first<<" , " <<instr[s].second<<" ) ";
+                    cout<<start_ptr<<" )\t"<<"( "<<instr[s].second<<" ) ";
                     start_ptr++;
                 }
                 else
                 {
-
-                    cout<<"\t\t( "<<instr[s].first<<" , " <<instr[s].second<<" ) ";
 
                     if(s != "START")
                         start_ptr++;
@@ -116,7 +95,7 @@ int main()
                 if(s == "BC")
                 {
                     string condition = inputData[i][++j];
-                    cout<<"( CC , "<<branch[condition]<<" ) ";
+                    cout<<"( "<<branch[condition]<<" ) ";
                 }
                 if(s == "ORIGIN")
                 {
@@ -167,6 +146,10 @@ int main()
             //Check if literal
             else if(s.find('=') != s.npos)
             {
+                tii.data.push_back(s);
+                tii.address.push_back(start_ptr-1);
+                tii.ptr++;
+
                 int ind = -1;
                 for(int i = pool_ptr-1 ; i < literal.data.size(); i++)
                 {
@@ -181,18 +164,18 @@ int main()
                 if(ind != -1)
                 {
                     // int ind = find(literal.data.begin(),literal.data.end(),s) - literal.data.begin();
-                    cout << " ( L , "<< literal.address[ind] <<" ) ";
+                    // cout << " ( L , "<< literal.address[ind] <<" ) ";
                 }
                 else
                 {
                     literal.data.push_back(s);
                     literal.address.push_back(++(literal.ptr));
-                    cout << " ( L , "<< literal.ptr <<" ) ";
                 }
 
             }
             else
             {
+
                 //Symbol is at front and address is used
                 if(j == 0)
                 {
@@ -208,16 +191,16 @@ int main()
                 }
                 else
                 {
+
+                    tii.data.push_back(s);
+                    tii.address.push_back(start_ptr-1);
+                    tii.ptr++;
+
                     auto it = find(symbol.data.begin(),symbol.data.end(),s);
                     if(it == symbol.data.end())
                     {
                         symbol.data.push_back(s);
                         symbol.address.push_back(++(symbol.ptr));
-                        cout << " ( S , "<< symbol.ptr <<" ) ";
-                    }
-                    else
-                    {
-                        cout << " ( S , "<< it - symbol.data.begin() + 1 <<" ) ";
                     }
 
                 }
@@ -230,9 +213,10 @@ int main()
     {
         start_ptr = update_literal(literal,start_ptr,pool_ptr);
 
+
         storetable(literal,"literal.txt");
         storetable(symbol,"symbol.txt");
-        fclose(stdout);
+        storetable(tii,"tii.txt");
 
         freopen("pool.txt","w",stdout);
         cout << "Pool tab : ";
@@ -264,6 +248,8 @@ void readFile(string filepath,vector<vector<string>> &inputData)
         inputData.push_back(instr);
         // in>>inputData[num++];
     }
+
+    in.close();
 
 }
 

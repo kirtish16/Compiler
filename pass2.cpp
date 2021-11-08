@@ -27,22 +27,28 @@ int main()
 
         if(inputData[i][1] == "IS")
         {
+            cout << inputData[i][0] <<") " ;
             int j = 2 ;
             while(j < inputData[i].size())
             {
-                if(inputData[i][j] == "S") 
+                if(inputData[i][j] == "S")
                 {
 
-                    int syind =  stoi(inputData[i][++j]) ; 
-                    cout << symbol[syind-1][2] << " "; 
+                    int syind =  stoi(inputData[i][++j]) ;
+                    cout << symbol[syind-1][2] << " ";
 
                 }
-                else if(inputData[i][j] == "L") 
+                else if(inputData[i][j] == "L")
                 {
-                    int ltind =  stoi(inputData[i][++j]) ; 
-                    cout << literal[ltind-1][2] << " "; 
+                    int ltind =  stoi(inputData[i][++j]) ;
+                    cout << literal[ltind-1][2] << " ";
                 }
-                else 
+                else if(inputData[i][j] == "CC"){
+                    j++;
+                    continue;
+
+                }
+                else
                     cout << inputData[i][j] << " " ;
                 j++;
             }
@@ -50,17 +56,17 @@ int main()
         }
         else if(inputData[i][1] == "DL" && inputData[i][2] == "1")
         {
-            cout << inputData[i][4] ;
+            cout << inputData[i][0] <<") " <<inputData[i][4] ;
         }
         else if(inputData[i][1].find('=') != inputData[i][1].npos)
         {
-            cout << inputData[i][1] << " "; 
+            cout << inputData[i][0] << ") " << inputData[i][1];
         }
-        
+
         cout << "\n";
     }
-    // IS , DL 1 , Literal 
-    return 0 ; 
+    // IS , DL 1 , Literal
+    return 0 ;
 }
 
 
